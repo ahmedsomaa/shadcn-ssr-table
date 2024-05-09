@@ -1,25 +1,41 @@
 "use client";
 
 import { Post } from "@/app/users/columns";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+interface PaginationOptions {
+  pageSize?: number;
+  startPage?: number;
+}
+
+const fetchPosts = async () => {
+  const response = await fetch(`https://jsonplaceholder.typicode.com/posts`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch posts");
+  }
+  return await response.json();
+};
 
 export const usePostsAPI = ({
-  pagination: { limit = 10, skip = 0 } = {},
-} = {}) => {
-  const [count, setCount] = useState<number>(0);
-  const [data, setData] = useState<Array<Post>>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  pagination: { pageSize = 10, startPage = 1 } = {},
+}: {
+  pagination: PaginationOptions;
+}) => {
+  const {
+    data: posts,
+    isLoading,
+    isError,
+  } = useQuery<Post[]>({ queryKey: ["posts"], queryFn: fetchPosts });
 
-  useEffect(() => {
-    setLoading(true);
-    fetch("https://jsonplaceholder.typicode.com/posts")
-      .then((res) => res.json())
-      .then((posts) => {
-        setData(posts.slice(skip, skip + limit));
-        setCount(posts.length);
-      })
-      .finally(() => setLoading(false));
-  }, [limit, skip, setData, setLoading]);
+  // Calculate pagination
+  const paginatedPosts = posts
+    ? posts.slice(startPage, startPage + pageSize)
+    : [];
 
-  return { posts: data, count, loading };
+  return {
+    posts: paginatedPosts,
+    totalPosts: posts?.length || 0,
+    loading: isLoading,
+    error: isError,
+  };
 };
