@@ -8,8 +8,10 @@ interface PaginationOptions {
   startPage?: number;
 }
 
-const fetchPosts = async () => {
-  const response = await fetch(`https://jsonplaceholder.typicode.com/posts`);
+const fetchPosts = async ({ pageSize, startPage }: PaginationOptions) => {
+  const response = await fetch(
+    `https://jsonplaceholder.typicode.com/posts?_start=${startPage}&_limit=${pageSize}`
+  );
   if (!response.ok) {
     throw new Error("Failed to fetch posts");
   }
@@ -25,17 +27,15 @@ export const usePostsAPI = ({
     data: posts,
     isLoading,
     isError,
-  } = useQuery<Post[]>({ queryKey: ["posts"], queryFn: fetchPosts });
-
-  // Calculate pagination
-  const paginatedPosts = posts
-    ? posts.slice(startPage, startPage + pageSize)
-    : [];
+  } = useQuery<Post[]>({
+    queryKey: ["posts", { startPage }],
+    queryFn: () => fetchPosts({ pageSize, startPage }),
+  });
 
   return {
-    posts: paginatedPosts,
-    totalPosts: posts?.length || 0,
+    posts: posts,
     loading: isLoading,
+    totalPosts: 100,
     error: isError,
   };
 };
